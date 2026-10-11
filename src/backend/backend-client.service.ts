@@ -39,7 +39,7 @@ export class BackendClient {
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', 'x-token': token },
+        headers: { 'Content-Type': 'application/json', 'x-token': token, 'User-Agent': 'steyner-mcp/1.0' },
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
@@ -53,6 +53,7 @@ export class BackendClient {
 
       const data = await this.parseBody(res);
       if (!res.ok) {
+        this.logFailure('request', res, url, data);
         throw new BackendError(res.status, this.extractMessage(data, res.statusText));
       }
       return data as T;
@@ -72,11 +73,12 @@ export class BackendClient {
 
     this.loginInFlight = (async () => {
       try {
+        const loginUrl = this.buildUrl(env('BACKEND_LOGIN_PATH', '/api/auth/login'));
         const res = await fetch(
-          this.buildUrl(env('BACKEND_LOGIN_PATH', '/api/auth')),
+          loginUrl,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'User-Agent': 'steyner-mcp/1.0' },
             body: JSON.stringify({
               correo: env('BACKEND_USER_EMAIL'),
               password: env('BACKEND_USER_PASSWORD'),
@@ -86,6 +88,7 @@ export class BackendClient {
         );
         const data = await this.parseBody(res);
         if (!res.ok || !data?.token) {
+          this.logFailure('login', res, loginUrl, data);
           throw new BackendError(res.status, this.extractMessage(data, 'Login fallido'));
         }
         this.token = data.token as string;
@@ -121,5 +124,15 @@ export class BackendClient {
   // Tu backend responde a veces con "msg" y a veces con "msj"
   private extractMessage(data: any, fallback: string): string {
     return data?.msg ?? data?.msj ?? fallback;
+  }
+
+  private logFailure(where: 'login' | 'request', res: Response, url: string, data: unknown) {
+    const h = (name: string) => res.headers.get(name);
+    this.logger.error(
+      `${where} falló: ${res.status} ${res.statusText} path=${new URL(url).pathname} ` +
+        `retry-after=${h('retry-after')} server=${h('server')} cf-ray=${h('cf-ray')} ` +
+        `ratelimit-remaining=${h('ratelimit-remaining') ?? h('x-ratelimit-remaining')} ` +
+        `body=${JSON.stringify(data)?.slice(0, 200)}`,
+    );
   }
 }
