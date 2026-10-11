@@ -18,7 +18,8 @@ export function registerLogTools(server: McpServer, backend: BackendClient) {
       inputSchema: {
         limite: z.number().int().min(1).max(50).optional().describe('Cantidad por página (1-50). Por defecto 10.'),
         desde: z.number().int().min(0).optional().describe('Cuántos logs saltar (para paginar). Por defecto 0.'),
-        sort: z.enum(['titulo', 'tipo', 'detalleTipo']).optional().describe('Campo de orden. Por defecto "titulo".'),
+        sort: z.enum(['titulo', 'tipo', 'detalleTipo', '_id']).optional()
+          .describe('Campo de orden. Por defecto "titulo". Usa "_id" con order "desc" para obtener los más recientes primero.'),
         order: z.enum(['asc', 'desc']).optional().describe('Sentido del orden. Por defecto "desc".'),
       },
       annotations: { readOnlyHint: true, openWorldHint: false },
