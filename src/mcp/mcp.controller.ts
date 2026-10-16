@@ -2,7 +2,7 @@ import { Controller, Post, Req, Res, Get, Delete, UseGuards  } from '@nestjs/com
 import type { Request, Response } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { McpService  } from './mcp.service.js';
-import { ApiKeyGuard } from './api-key.guard.js';
+import { OAuthGuard  } from '../auth/oauth.guard.js';
 
 
 @Controller('mcp')
@@ -11,7 +11,7 @@ export class McpController {
   constructor(private readonly mcp: McpService) {}
 
   @Post()
-  @UseGuards(ApiKeyGuard)
+  @UseGuards(OAuthGuard)
   async handle(@Req() req: Request, @Res() res: Response): Promise<void> {
     const server = this.mcp.createServer();
     const transport = new StreamableHTTPServerTransport({
