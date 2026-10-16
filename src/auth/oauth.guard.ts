@@ -9,6 +9,7 @@ import { createLocalJWKSet, createRemoteJWKSet, jwtVerify, type JWTPayload, type
 import { timingSafeEqual } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { loadAuthConfig, type AuthConfig } from './auth.config.js';
+import type { AuthedRequest } from './auth-context.js';
 
 const REQUIRED_SCOPE = 'mcp';
 
@@ -57,11 +58,14 @@ export class OAuthGuard implements CanActivate {
     const scopes = typeof payload.scope === 'string' ? payload.scope.split(' ') : [];
     if (!scopes.includes(REQUIRED_SCOPE)) return this.deny(res, 403, 'insufficient_scope');
 
-    // Identidad de quien autorizó (no se reenvía este token al backend: eso sería token passthrough).
-    (req as Request & { auth?: unknown }).auth = {
-      sub: payload.sub,
-      clientId: payload.client_id,
+    // Identidad de quien autorizó. El token se guarda SOLO para intercambiarlo por otro destinado al
+    // backend (RFC 8693); nunca se reenvía tal cual (eso sería token passthrough).
+    (req as AuthedRequest).auth = {
+      token,
+      clientId: typeof payload.client_id === 'string' ? payload.client_id : 'desconocido',
       scopes,
+      expiresAt: payload.exp,
+      extra: { sub: payload.sub },
     };
     return true;
   }

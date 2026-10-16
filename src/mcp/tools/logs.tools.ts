@@ -1,12 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { BackendClient } from '../../backend/backend-client.service.js';
+import type { BackendApi } from '../../backend/backend-client.service.js';
 import { errorResult, fail, ok } from './results.js';
 
 const LOGS_PATH = '/api/logs';
 const UPDATE_METHOD = 'PUT' as const; 
 
-export function registerLogTools(server: McpServer, backend: BackendClient) {
+export function registerLogTools(server: McpServer, backend: BackendApi) {
   server.registerTool(
     'listar_logs',
     {

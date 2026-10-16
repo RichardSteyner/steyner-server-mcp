@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import type { AuthContext } from '../auth/auth-context.js';
 import { BackendClient } from '../backend/backend-client.service.js';
 import { registerLogTools } from './tools/logs.tools.js';
 
@@ -9,10 +10,14 @@ export class McpService {
   // Import normal (no "import type"): Nest necesita la clase en runtime para inyectarla
   constructor(private readonly backend: BackendClient) {}
 
-  createServer(): McpServer {
+  // Se crea un servidor por petición, así que cada uno queda ligado a quien autorizó ESA petición.
+  createServer(auth?: AuthContext): McpServer {
     const server = new McpServer({ name: 'steyner-logs', version: '1.0.0' });
 
-    registerLogTools(server, this.backend);
+    // Con intercambio de tokens configurado, las llamadas al backend se hacen como ese usuario.
+    const api = this.backend.forRequest(auth);
+
+    registerLogTools(server, api);
 
     server.registerResource(
       'logs-vigentes',
@@ -23,7 +28,7 @@ export class McpService {
         mimeType: 'application/json',
       },
       async (uri) => {
-        const data = await this.backend.request('GET', '/api/logs', { query: { limite: 10 } });
+        const data = await api.request('GET', '/api/logs', { query: { limite: 10 } });
         return { contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(data, null, 2) }] };
       },
     );
