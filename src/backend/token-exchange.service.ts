@@ -135,6 +135,18 @@ export class TokenExchangeService {
         'El backend rechazó las credenciales del MCP para el intercambio de tokens (revisa OAUTH_EXCHANGE_CLIENT_ID y OAUTH_EXCHANGE_CLIENT_SECRET).',
       );
     }
+    if (data?.error === 'unsupported_grant_type') {
+      return new BackendError(
+        502,
+        'El backend no tiene habilitado el intercambio de tokens (define OAUTH_EXCHANGE_CLIENT_SECRET en el backend, con el mismo valor que en el MCP, y redespliega).',
+      );
+    }
+    if (data?.error === 'invalid_target' || data?.error === 'invalid_scope') {
+      return new BackendError(
+        502,
+        'El backend rechazó la audiencia o el scope del intercambio (OAUTH_BACKEND_AUDIENCE debe ser idéntica en el backend y en el MCP).',
+      );
+    }
     if (data?.error === 'invalid_grant') {
       return new BackendError(403, 'Tu sesión ya no es válida o la cuenta ya no está autorizada. Vuelve a conectar el MCP.');
     }
